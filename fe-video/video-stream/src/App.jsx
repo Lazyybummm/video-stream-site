@@ -5,10 +5,13 @@ import './App.css'
 import Videoplayer from '../../components/videoPlayer'
 import axios from "axios"
 import Landing from '../../components/Landing'
+import Searchresults from '../../components/searchResults'
 
 function App() {
   const [id,setid]=useState(603)
   const input_ref=useRef();
+  const [results,setresults]=useState(null);
+   const [genre,setgenre]=useState(null);
   const [active,setactive]=useState('landing')
   async function conversion(movie_name){
     const response=await axios.get("https://api.themoviedb.org/3/search/movie?",{
@@ -29,8 +32,9 @@ function App() {
   <button onClick={()=>{console.log(input_ref.current.value)
     conversion(input_ref.current.value)}}>submit</button>
   {bool?<Videoplayer tmdbid={id}></Videoplayer>:''} */}
-  {active=='landing'?<Landing setactive={setactive} setid={setid}></Landing>:''}
-  {active=="player"?<Videoplayer tmdbid={id}></Videoplayer>:''}
+  {active=='landing'?<Landing setactive={setactive} setid={setid} setresults={setresults}></Landing>:''}
+  {active=="player"?<Videoplayer tmdbid={id} setid={setid}></Videoplayer>:''}
+  {active=="search"?<Searchresults setid={setid} setactive={setactive} results={results} ></Searchresults>:''}
   </>
 }
 

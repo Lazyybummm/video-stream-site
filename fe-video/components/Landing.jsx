@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 
-function Landing({ setid, setactive }) {
+function Landing({ setid, setactive ,setresults}) {
   const [trending, setTrending] = useState(null);
   const [topRated, setTopRated] = useState(null);
   const [popular, setPopular] = useState(null);
@@ -27,8 +27,8 @@ function Landing({ setid, setactive }) {
         search_query: searchQuery,
       },
     });
-    setid(response.data);
-    setactive("player");
+    setresults(response.data)
+    setactive("search")
   };
 
   const renderMovieRow = (data, title) => {
