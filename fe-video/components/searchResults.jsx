@@ -51,6 +51,7 @@ function Searchresults({results, setid, setactive}) {
                 onClick={() => {
                   setid(item.id);
                   setactive('player');
+                  //push a task into a queueu which will be pulled by a worker which will perform cache storage in the bg
                 }}
                 className="result-card"
                 style={{
