@@ -1,41 +1,46 @@
-import { act, useRef, useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useState } from 'react'
 import './App.css'
 import Videoplayer from '../../components/videoPlayer'
-import axios from "axios"
 import Landing from '../../components/Landing'
 import Searchresults from '../../components/searchResults'
 
 function App() {
-  const [id,setid]=useState(603)
-  const input_ref=useRef();
-  const [results,setresults]=useState(null);
-   const [genre,setgenre]=useState(null);
-  const [active,setactive]=useState('landing')
-  async function conversion(movie_name){
-    const response=await axios.get("https://api.themoviedb.org/3/search/movie?",{
-      params:{
-        query:movie_name,
-        language:"en-US",
-        includer_adult:"false"
-      },
-      headers:{
-        Authorization:"Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJkZWE2OGQ0MzgwZDBiNzk4OTU0ZTVhOTZhMWE4MjEwMCIsIm5iZiI6MTc2ODkxMTA0OS44ODIsInN1YiI6IjY5NmY3MGM5YmFlNTk5NDYzMzdhYmQyNiIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ._eY4rmwA3_XrpRYUUhlBwAJD6mbH73zY7Qfw5jcBmrk",
-      }
-    })
-    setid(response.data.results[0].id);
-    setbool(1);
-  }
-  return <>
-  {/* <input  ref={input_ref} placeholder='enter movie name'></input>
-  <button onClick={()=>{console.log(input_ref.current.value)
-    conversion(input_ref.current.value)}}>submit</button>
-  {bool?<Videoplayer tmdbid={id}></Videoplayer>:''} */}
-  {active=='landing'?<Landing setactive={setactive} setid={setid} setresults={setresults}></Landing>:''}
-  {active=="player"?<Videoplayer tmdbid={id} setid={setid}></Videoplayer>:''}
-  {active=="search"?<Searchresults setid={setid} setactive={setactive} results={results} ></Searchresults>:''}
-  </>
+  const [id, setid] = useState(null);
+  const [results, setresults] = useState([]);
+  const [active, setactive] = useState('landing');
+  const [selectedMedia, setSelectedMedia] = useState('movie'); 
+
+  return (
+    <div className="App">
+      {active === 'landing' && (
+        <Landing 
+          setactive={setactive} 
+          setid={setid} 
+          setresults={setresults}
+          selectedMedia={selectedMedia}
+          setSelectedMedia={setSelectedMedia} 
+        />
+      )}
+
+      {active === "player" && (
+        <Videoplayer 
+          tmdbid={id} 
+          setid={setid} 
+          setactive={setactive}
+          selectedMedia={selectedMedia} 
+        />
+      )}
+
+      {active === "search" && (
+        <Searchresults 
+          setid={setid} 
+          setactive={setactive} 
+          results={results} 
+          selectedMedia={selectedMedia}
+        />
+      )}
+    </div>
+  );
 }
 
-export default App
+export default App;

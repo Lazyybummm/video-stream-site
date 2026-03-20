@@ -1,642 +1,115 @@
-import axios from "axios";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 
-function Landing({ setid, setactive ,setresults}) {
-  const [trending, setTrending] = useState(null);
-  const [topRated, setTopRated] = useState(null);
-  const [popular, setPopular] = useState(null);
-  const [featured, setFeatured] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
+const Landing = ({ setactive, setid, selectedMedia, setSelectedMedia, setresults }) => {
+  const [data, setData] = useState({ trending: [], topRated: [], loading: true });
+  const [searchInput, setSearchInput] = useState("");
 
   useEffect(() => {
-    async function trend_call() {
-      const response = await axios.get("http://localhost:3000/landing");
-      setTrending(response.data.trending);
-      setTopRated(response.data.top_rated);
-      setPopular(response.data.popular);
-      setFeatured(response.data.trending[0]);
+    const fetchMedia = async () => {
+      setData(prev => ({ ...prev, loading: true }));
+      try {
+        const response = await axios.get(`http://localhost:3000/landing`);
+        const rawData = response.data;
+        if (selectedMedia === 'tv') {
+          setData({ trending: rawData[0] || [], topRated: rawData[1] || [], loading: false });
+        } else {
+          setData({ trending: rawData[3] || [], topRated: rawData[4] || [], loading: false });
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+        setData(prev => ({ ...prev, loading: false }));
+      }
+    };
+    fetchMedia();
+  }, [selectedMedia]);
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchInput.trim()) return;
+    try {
+      const res = await axios.get("http://localhost:3000/search", {
+        params: { search_query: searchInput, selectedMedia: selectedMedia }
+      });
+      setresults(res.data); // Store results in parent state
+      setactive('search');  // Switch view to search results
+    } catch (err) {
+      console.error("Search error:", err);
     }
-    trend_call();
-  }, []);
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-
-    const response = await axios.get("http://localhost:3000/search", {
-      params: {
-        search_query: searchQuery,
-      },
-    });
-    setresults(response.data)
-    setactive("search")
   };
 
-  const renderMovieRow = (data, title) => {
-    return (
-      <div
-        style={{
-          position: "relative",
-          zIndex: 5,
-          padding: "0 4%",
-          marginBottom: "50px",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            justifyContent: "space-between",
-            marginBottom: "14px",
-          }}
-        >
-          <h2
-            style={{
-              margin: 0,
-              fontSize: "22px",
-              fontWeight: 800,
-              color: "rgba(255,255,255,0.92)",
-              letterSpacing: "-0.4px",
-            }}
-          >
-            {title}
-          </h2>
-
-          <div
-            style={{
-              fontSize: "12px",
-              color: "rgba(255,255,255,0.45)",
-              fontWeight: 700,
-              letterSpacing: "0.8px",
-              textTransform: "uppercase",
-            }}
-          >
-            Scroll →
-          </div>
-        </div>
-
-        <div style={{ position: "relative" }}>
-          <div
-            style={{
-              display: "flex",
-              gap: "10px",
-              overflowX: "auto",
-              overflowY: "hidden",
-              paddingBottom: "18px",
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-            }}
-          >
-            {data ? (
-              data.map((item) => {
-                return (
-                  <div
-                    key={item.id}
-                    onClick={() => {
-                      setid(item.id);
-                      setactive("player");
-                    }}
-                    style={{
-                      flex: "0 0 auto",
-                      width: "290px",
-                      borderRadius: "16px",
-                      overflow: "hidden",
-                      cursor: "pointer",
-                      position: "relative",
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      boxShadow: "0 30px 80px rgba(0,0,0,0.35)",
-                      transition:
-                        "transform 0.22s ease, border-color 0.22s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "translateY(-6px)";
-                      e.currentTarget.style.borderColor =
-                        "rgba(229, 9, 20, 0.35)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "translateY(0px)";
-                      e.currentTarget.style.borderColor =
-                        "rgba(255,255,255,0.08)";
-                    }}
-                  >
-                    <div style={{ position: "relative" }}>
-                      <img
-                        src={`https://image.tmdb.org/t/p/w500${item.backdrop_path}`}
-                        alt={item.title}
-                        style={{
-                          width: "100%",
-                          height: "164px",
-                          objectFit: "cover",
-                          display: "block",
-                          filter: "contrast(1.05) saturate(1.05)",
-                        }}
-                      />
-
-                      <div
-                        style={{
-                          position: "absolute",
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          height: "60%",
-                          background:
-                            "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.0) 100%)",
-                        }}
-                      />
-                    </div>
-
-                    <div style={{ padding: "12px 14px 14px 14px" }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          marginBottom: "8px",
-                        }}
-                      >
-                        <span
-                          style={{
-                            color: "rgba(255,255,255,0.7)",
-                            fontSize: "12px",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {item.release_date
-                            ? new Date(item.release_date).getFullYear()
-                            : "N/A"}
-                        </span>
-
-                        <span
-                          style={{
-                            padding: "3px 8px",
-                            borderRadius: "999px",
-                            background: "rgba(255,255,255,0.06)",
-                            border: "1px solid rgba(255,255,255,0.10)",
-                            fontSize: "11px",
-                            fontWeight: 800,
-                            color: "rgba(255,255,255,0.72)",
-                          }}
-                        >
-                          HD
-                        </span>
-                      </div>
-
-                      <h3
-                        style={{
-                          margin: 0,
-                          fontSize: "15px",
-                          fontWeight: 800,
-                          color: "rgba(255,255,255,0.92)",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          letterSpacing: "-0.2px",
-                        }}
-                      >
-                        {item.title}
-                      </h3>
-
-                      <div
-                        style={{
-                          marginTop: "6px",
-                          fontSize: "13px",
-                          color: "rgba(255,255,255,0.55)",
-                          display: "-webkit-box",
-                          WebkitLineClamp: "2",
-                          WebkitBoxOrient: "vertical",
-                          overflow: "hidden",
-                          lineHeight: "1.45",
-                        }}
-                      >
-                        {item.overview}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div style={{ display: "flex", gap: "10px" }}>
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div
-                    key={i}
-                    style={{
-                      flex: "0 0 auto",
-                      width: "290px",
-                      height: "250px",
-                      borderRadius: "16px",
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.06)",
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
+  const handleMediaClick = (id) => {
+    setid(id);
+    setactive("player");
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#050505",
-        position: "relative",
-        overflow: "hidden",
-        color: "#fff",
-        fontFamily:
-          'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"',
-      }}
-    >
-      {/* ======= Top Nav ======= */}
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: "76px",
-          zIndex: 200,
-          padding: "0 4%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          backdropFilter: "blur(10px)",
-          background:
-            "linear-gradient(to bottom, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.25) 70%, transparent 100%)",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-        }}
-      >
-        {/* Brand */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            userSelect: "none",
-          }}
-        >
-          <div
-            style={{
-              width: "34px",
-              height: "34px",
-              borderRadius: "10px",
-              background:
-                "radial-gradient(circle at 30% 30%, #ff2a2a 0%, #b50000 60%, #4b0000 100%)",
-              boxShadow: "0 10px 30px rgba(229, 9, 20, 0.25)",
-            }}
-          />
-          <div
-            style={{
-              fontSize: "20px",
-              fontWeight: 800,
-              letterSpacing: "-0.6px",
-              color: "#fff",
-            }}
-          >
-            Movie<span style={{ color: "#e50914" }}>Flix</span>
-          </div>
+    <div className="landing-root">
+      <nav className="nav-container">
+        {/* Logo Left */}
+        <div className="nav-logo" style={{ color: '#E50914', fontWeight: '900', fontSize: '24px', position: 'absolute', left: '50px' }}>
+          MOVIEFLIX
         </div>
 
-        {/* Search */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              background: "rgba(0,0,0,0.55)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: "999px",
-              padding: "8px 12px",
-              boxShadow: "0 18px 60px rgba(0,0,0,0.35)",
-            }}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="rgba(255,255,255,0.85)"
-              strokeWidth="2"
-              style={{ opacity: 0.9 }}
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
-
-            <input
-              type="text"
-              placeholder="Search movies..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === "Enter") handleSearch();
-              }}
-              style={{
-                width: "280px",
-                padding: "8px 6px",
-                fontSize: "14px",
-                color: "#fff",
-                background: "transparent",
-                border: "none",
-                outline: "none",
-                fontFamily: "inherit",
-              }}
-            />
-          </div>
-
-          <button
-            onClick={handleSearch}
-            style={{
-              padding: "10px 18px",
-              fontSize: "14px",
-              fontWeight: 700,
-              color: "#fff",
-              background: "#e50914",
-              border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: "999px",
-              cursor: "pointer",
-              fontFamily: "inherit",
-              transition: "transform 0.15s ease, background 0.2s ease",
-              boxShadow: "0 16px 50px rgba(229, 9, 20, 0.25)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#ff0f1a";
-              e.currentTarget.style.transform = "translateY(-1px)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "#e50914";
-              e.currentTarget.style.transform = "translateY(0px)";
-            }}
-          >
-            Search
-          </button>
+        {/* Centered Pill */}
+        <div className="nav-pill">
+          <div className="nav-slider" style={{ left: selectedMedia === 'movie' ? '4px' : 'calc(50% + 1px)' }} />
+          <button className={`nav-item ${selectedMedia === 'movie' ? 'active' : ''}`} onClick={() => setSelectedMedia('movie')}>Movies</button>
+          <button className={`nav-item ${selectedMedia === 'tv' ? 'active' : ''}`} onClick={() => setSelectedMedia('tv')}>TV Shows</button>
         </div>
-      </div>
 
-      {/* ======= Hero ======= */}
-      {featured && (
-        <div
-          style={{
-            position: "relative",
-            height: "88vh",
-            minHeight: "560px",
-            background: "#000",
-            marginTop: "76px",
-          }}
-        >
-          {/* Hero Backdrop */}
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              backgroundImage: `url(https://image.tmdb.org/t/p/original${featured.backdrop_path})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center 20%",
-              filter: "saturate(1.15) contrast(1.05)",
-              transform: "scale(1.02)",
-            }}
+        {/* Search Right */}
+        <form onSubmit={handleSearch} style={{ position: 'absolute', right: '50px' }}>
+          <input 
+            type="text" 
+            placeholder="Search..." 
+            className="search-input-premium"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
           />
+        </form>
+      </nav>
 
-          {/* Cineby-like overlays */}
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background:
-                "radial-gradient(circle at 20% 40%, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0.65) 55%, rgba(0,0,0,0.92) 100%)",
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background:
-                "linear-gradient(to right, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.65) 38%, rgba(0,0,0,0.10) 70%, rgba(0,0,0,0.55) 100%)",
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background:
-                "linear-gradient(to bottom, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0.35) 55%, #050505 100%)",
-            }}
-          />
-
-          {/* Hero Content */}
-          <div
-            style={{
-              position: "relative",
-              zIndex: 2,
-              height: "100%",
-              padding: "0 4%",
-              display: "flex",
-              alignItems: "center",
-              maxWidth: "1400px",
-            }}
-          >
-            <div style={{ maxWidth: "720px" }}>
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  marginBottom: "14px",
-                }}
-              >
-                <span
-                  style={{
-                    padding: "6px 10px",
-                    borderRadius: "999px",
-                    background: "rgba(229,9,20,0.14)",
-                    border: "1px solid rgba(229,9,20,0.25)",
-                    color: "#ff3b45",
-                    fontWeight: 700,
-                    fontSize: "12px",
-                    letterSpacing: "0.3px",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Featured
-                </span>
-
-                <span
-                  style={{
-                    color: "rgba(255,255,255,0.85)",
-                    fontSize: "14px",
-                    fontWeight: 600,
-                  }}
-                >
-                  {featured.release_date
-                    ? new Date(featured.release_date).getFullYear()
-                    : ""}
-                </span>
-
-                <span
-                  style={{
-                    width: "4px",
-                    height: "4px",
-                    borderRadius: "999px",
-                    background: "rgba(255,255,255,0.35)",
-                  }}
-                />
-
-                <span
-                  style={{
-                    padding: "4px 8px",
-                    borderRadius: "8px",
-                    background: "rgba(255,255,255,0.08)",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    color: "rgba(255,255,255,0.8)",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                  }}
-                >
-                  HD
-                </span>
+      <main className="main-content">
+        {data.loading ? (
+          <div className="loader">Preparing Cinema...</div>
+        ) : (
+          <>
+            <section className="shelf">
+              <h2 className="shelf-title">Trending {selectedMedia === 'movie' ? 'Now' : 'Series'}</h2>
+              <div className="horizontal-scroll">
+                {data.trending.map(item => (
+                  <MediaCard key={item.id} item={item} onClick={() => handleMediaClick(item.id)} />
+                ))}
               </div>
+            </section>
 
-              <h1
-                style={{
-                  margin: 0,
-                  fontSize: "clamp(34px, 4.8vw, 74px)",
-                  fontWeight: 900,
-                  letterSpacing: "-1.2px",
-                  lineHeight: 1.05,
-                  textShadow: "0 12px 40px rgba(0,0,0,0.65)",
-                }}
-              >
-                {featured.title}
-              </h1>
-
-              <p
-                style={{
-                  margin: "18px 0 28px 0",
-                  maxWidth: "620px",
-                  fontSize: "16px",
-                  lineHeight: 1.65,
-                  color: "rgba(255,255,255,0.86)",
-                  textShadow: "0 8px 26px rgba(0,0,0,0.6)",
-                  display: "-webkit-box",
-                  WebkitLineClamp: "4",
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                }}
-              >
-                {featured.overview}
-              </p>
-
-              <div style={{ display: "flex", gap: "12px" }}>
-                <button
-                  onClick={() => {
-                    setid(featured.id);
-                    setactive("player");
-                  }}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "10px",
-                    padding: "12px 22px",
-                    borderRadius: "14px",
-                    border: "1px solid rgba(255,255,255,0.10)",
-                    background: "rgba(255,255,255,0.92)",
-                    color: "#000",
-                    fontWeight: 800,
-                    cursor: "pointer",
-                    fontSize: "16px",
-                    transition: "transform 0.15s ease, background 0.2s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "translateY(-1px)";
-                    e.currentTarget.style.background = "#ffffff";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "translateY(0px)";
-                    e.currentTarget.style.background = "rgba(255,255,255,0.92)";
-                  }}
-                >
-                  <svg
-                    width="22"
-                    height="22"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                  Play
-                </button>
-
-                <button
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "10px",
-                    padding: "12px 22px",
-                    borderRadius: "14px",
-                    border: "1px solid rgba(255,255,255,0.14)",
-                    background: "rgba(0,0,0,0.35)",
-                    color: "#fff",
-                    fontWeight: 800,
-                    cursor: "pointer",
-                    fontSize: "16px",
-                    transition: "transform 0.15s ease, background 0.2s ease",
-                    backdropFilter: "blur(10px)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "translateY(-1px)";
-                    e.currentTarget.style.background = "rgba(0,0,0,0.50)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "translateY(0px)";
-                    e.currentTarget.style.background = "rgba(0,0,0,0.35)";
-                  }}
-                >
-                  <svg
-                    width="22"
-                    height="22"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="16" x2="12" y2="12" />
-                    <line x1="12" y1="8" x2="12.01" y2="8" />
-                  </svg>
-                  More Info
-                </button>
+            <section className="shelf">
+              <h2 className="shelf-title">Top Rated</h2>
+              <div className="horizontal-scroll">
+                {data.topRated.map(item => (
+                  <MediaCard key={item.id} item={item} onClick={() => handleMediaClick(item.id)} />
+                ))}
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ======= Movie Rows ======= */}
-      <div style={{ marginTop: featured ? "-170px" : "96px", paddingBottom: "70px" }}>
-        {renderMovieRow(trending, "Trending Now")}
-        {renderMovieRow(topRated, "Top Rated")}
-        {renderMovieRow(popular, "Popular Movies")}
-      </div>
-
-      <style>
-        {`
-          div::-webkit-scrollbar { display: none; }
-          * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-        `}
-      </style>
+            </section>
+          </>
+        )}
+      </main>
     </div>
   );
-}
+};
+
+const MediaCard = ({ item, onClick }) => (
+  <div className="media-card" onClick={onClick}>
+    <div className="poster-container">
+      <img src={`https://image.tmdb.org/t/p/w500${item.poster_path}`} alt="" />
+      <div className="poster-overlay"><div className="play-btn">▶</div></div>
+    </div>
+    <div className="meta">
+      <p className="title">{item.title || item.name}</p>
+      <span className="rating">★ {item.vote_average?.toFixed(1)}</span>
+    </div>
+  </div>
+);
 
 export default Landing;
