@@ -1,6 +1,7 @@
 import axios from "axios";
 
 async function getlanding(agent) { // Receive the agent here
+    console.log(process.env.TOKEN);
     const config = {
         httpsAgent: agent, // Use the persistent agent
         timeout: 10000,

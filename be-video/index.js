@@ -1,15 +1,13 @@
 import "dotenv/config";
 import express, { json } from "express"
-import bcrypt, { hash } from "bcrypt"
-import jwt from "jsonwebtoken"
 import pool from "./db.js";
 import axios from "axios"
 import https from "https"
 import cors from "cors"
 import getlanding from "./services/getLanding.js";
-import { Check } from "./cache/Redisops.js";
-import { Setex } from "./cache/Redisops.js";
-import redis from "./redisClient.js";
+// import { Check } from "./cache/Redisops.js";
+// import { Setex } from "./cache/Redisops.js";
+// import redis from "./redisClient.js";
 
 const app=express()
 app.use(cors());
