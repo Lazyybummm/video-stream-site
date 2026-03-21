@@ -9,7 +9,7 @@ const Landing = ({ setactive, setid, selectedMedia, setSelectedMedia, setresults
     const fetchMedia = async () => {
       setData(prev => ({ ...prev, loading: true }));
       try {
-        const response = await axios.get(`http://localhost:3000/landing`);
+        const response = await axios.get(`https://video-stream-site.onrender.com/`);
         const rawData = response.data;
         if (selectedMedia === 'tv') {
           setData({ trending: rawData[0] || [], topRated: rawData[1] || [], loading: false });
@@ -28,7 +28,7 @@ const Landing = ({ setactive, setid, selectedMedia, setSelectedMedia, setresults
     e.preventDefault();
     if (!searchInput.trim()) return;
     try {
-      const res = await axios.get("http://localhost:3000/search", {
+      const res = await axios.get("https://video-stream-site.onrender.com/search", {
         params: { search_query: searchInput, selectedMedia: selectedMedia }
       });
       setresults(res.data); // Store results in parent state

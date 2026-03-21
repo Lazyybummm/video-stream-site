@@ -10,11 +10,11 @@ const Videoplayer = ({ tmdbid, setid, selectedMedia, setactive }) => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const recRes = await axios.get("http://localhost:3000/recc", { params: { id: tmdbid, selectedMedia: selectedMedia } });
+      const recRes = await axios.get("https://video-stream-site.onrender.com/recc", { params: { id: tmdbid, selectedMedia: selectedMedia } });
       setReccs(recRes.data);
 
       if (selectedMedia === 'tv') {
-        const detRes = await axios.get("http://localhost:3000/details", { params: { id: tmdbid, selectedMedia: 'tv' } });
+        const detRes = await axios.get("https://video-stream-site.onrender.com/details", { params: { id: tmdbid, selectedMedia: 'tv' } });
         setShowData(detRes.data);
       }
     };
@@ -24,7 +24,7 @@ const Videoplayer = ({ tmdbid, setid, selectedMedia, setactive }) => {
 
   const addToWatchlist = async (m) => {
     try {
-      await axios.post("http://localhost:3000/watchlist", { metadata: [m] });
+      await axios.post("https://video-stream-site.onrender.com/watchlist", { metadata: [m] });
       setToast(`Added to My List`);
       setTimeout(() => setToast(null), 3000);
     } catch (err) { console.error(err); }
