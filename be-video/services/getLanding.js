@@ -1,79 +1,48 @@
-import pool from "../db.js"; // Your Postgres pool
-import axios from "axios";
+import pool from "../db.js"; 
+import { Queue } from "bullmq";
 
-async function getlanding(agent) {
+const connection = { url: process.env.REDIS_URL };
+const updateQueue = new Queue('update-request', { connection });
+
+async function getlanding() {
+    console.log("landing is hit");
     const CACHE_KEY = 'landing_data';
+    const expirationLimit = 24 * 60 * 60 * 1000; 
 
     try {
-        
+        const before = Date.now();
         const cacheCheck = await pool.query(
             "SELECT data, updated_at FROM global_cache WHERE cache_key = $1",
             [CACHE_KEY]
         );
-
-        const now = new Date();
-        const expirationLimit = 24 * 60 * 60 * 1000; // 24 hours
+        const after = Date.now();
 
         if (cacheCheck.rows.length > 0) {
             const { data, updated_at } = cacheCheck.rows[0];
-            if (now - new Date(updated_at) < expirationLimit) {
-                console.log("Serving from Postgres Cache");
-                // Ensure data is returned as an object/array if stored as JSON string
+            const now = new Date();
+            const isStale = (now - new Date(updated_at)) > expirationLimit;
+
+            if (!isStale) {
                 return typeof data === 'string' ? JSON.parse(data) : data;
             }
-        }
 
-        console.log("Cache stale or missing, polling TMDB...");
+            console.log("Cache stale: Triggering background worker...");
+            await updateQueue.add('update-request', {}, {
+                removeOnComplete: true,
+                attempts: 5,
+                backoff: { type: 'exponential', delay: 1000 }
+            });
 
-        
-        const config = {
-            httpsAgent: agent, 
-            timeout: 10000,
-            headers: { Authorization: `Bearer ${process.env.TOKEN}` }
-        };
-
-        const [
-            trendingtv, topRatedtv, populartv,
-            trendingmovie, topRatedmovie, popularmovie
-        ] = await Promise.all([
-            axios.get(`https://api.themoviedb.org/3/trending/tv/day`, config),
-            axios.get(`https://api.themoviedb.org/3/tv/top_rated`, config),
-            axios.get(`https://api.themoviedb.org/3/tv/popular`, config),
-            axios.get(`https://api.themoviedb.org/3/trending/movie/day`, config),
-            axios.get(`https://api.themoviedb.org/3/movie/top_rated`, config),
-            axios.get(`https://api.themoviedb.org/3/movie/popular`, config),
-        ]);
-
-        const responseData = [
-            trendingtv.data.results,
-            topRatedtv.data.results,
-            populartv.data.results,
-            trendingmovie.data.results,
-            topRatedmovie.data.results,
-            popularmovie.data.results
-        ];
-
-       
-        await pool.query(
-            `INSERT INTO global_cache (cache_key, data, updated_at) 
-             VALUES ($1, $2, CURRENT_TIMESTAMP)
-             ON CONFLICT (cache_key) 
-             DO UPDATE SET data = EXCLUDED.data, updated_at = CURRENT_TIMESTAMP`,
-            [CACHE_KEY, JSON.stringify(responseData)]
-        );
-
-        return responseData;
-
-    } catch (error) {
-        console.error("Cache/Fetch Error:", error.message);
-        
-        
-        const fallback = await pool.query("SELECT data FROM global_cache WHERE cache_key = $1", [CACHE_KEY]);
-        if (fallback.rows.length > 0) {
-            const data = fallback.rows[0].data;
+            console.log("Serving stale data while worker updates...");
             return typeof data === 'string' ? JSON.parse(data) : data;
         }
+
         
+        console.log("No cache found: Triggering first-time fetch...");
+        await updateQueue.add('refresh-landing', {});
+        return null; 
+    } catch (error) {
+        console.error("Cache/Queue Error:", error.message);
         throw error;
     }
 }
