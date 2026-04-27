@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import './App.css'
-import Videoplayer from '../../components/videoPlayer'
-import Landing from '../../components/Landing'
-import Searchresults from '../../components/searchResults'
+import Landing from './components/Landing';
+import Videoplayer from './components/videoPlayer';
+import Searchresults from './components/Searchresults';
 
 function App() {
   const [id, setid] = useState(null);
