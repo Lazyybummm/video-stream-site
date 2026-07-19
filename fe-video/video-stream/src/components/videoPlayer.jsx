@@ -2,16 +2,41 @@ import { useEffect, useState, useContext } from "react";
 import api from "../api/axiosInstance";
 import { AuthContext } from "../context/AuthContext";
 
+// THE 3 MOST STABLE SERVERS
+const VIDEO_SERVERS = [
+  { 
+    id: 'vidlink',
+    name: "Server 1 (VidLink)", 
+    getMovie: (id) => `https://vidlink.pro/movie/${id}`,
+    getTv: (id, s, e) => `https://vidlink.pro/tv/${id}/${s}/${e}`
+  },
+  { 
+    id: 'videasy',
+    name: "Server 2 (VidEasy)", 
+    getMovie: (id) => `https://player.videasy.net/movie/${id}`,
+    getTv: (id, s, e) => `https://player.videasy.net/tv/${id}/${s}/${e}`
+  },
+  { 
+    id: 'vidsrccc',
+    name: "Server 3 (VidSrc.cc)", 
+    getMovie: (id) => `https://vidsrc.cc/v2/embed/movie/${id}`,
+    getTv: (id, s, e) => `https://vidsrc.cc/v2/embed/tv/${id}/${s}/${e}`
+  }
+];
+
 const Videoplayer = ({ tmdbid, setid, selectedMedia, setactive }) => {
-  const { user } = useContext(AuthContext); // Need this to check if logged in
+  const { user } = useContext(AuthContext);
   const [showData, setShowData] = useState(null);
   const [seasonCount, setSeasonCount] = useState(1);
   const [episodeCount, setEpisodeCount] = useState(1);
   const [reccs, setReccs] = useState([]);
   const [toast, setToast] = useState(null);
-  const [isInitializing, setIsInitializing] = useState(true); // Prevents iframe from loading S1E1 before we check DB
+  const [isInitializing, setIsInitializing] = useState(true);
+  
+  // STATE: Track active server and VPN Toolkit visibility
+  const [activeServer, setActiveServer] = useState(0);
+  const [showVpnToolkit, setShowVpnToolkit] = useState(false);
 
-  // 1. Initial Load: Fetch Details & Resume Progress
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -22,7 +47,6 @@ const Videoplayer = ({ tmdbid, setid, selectedMedia, setactive }) => {
           const detRes = await api.get("/details", { params: { id: tmdbid, selectedMedia: 'tv' } });
           setShowData(detRes.data);
           
-          // Check database for saved progress if user is logged in
           if (user) {
               try {
                   const progRes = await api.get(`/progress/${tmdbid}`);
@@ -31,7 +55,6 @@ const Videoplayer = ({ tmdbid, setid, selectedMedia, setactive }) => {
                       setEpisodeCount(progRes.data.current_episode);
                   }
               } catch (e) {
-                  // 404 just means no progress saved yet, which is fine!
                   console.log("No previous progress found, starting at S1E1");
               }
           }
@@ -39,7 +62,7 @@ const Videoplayer = ({ tmdbid, setid, selectedMedia, setactive }) => {
       } catch (err) {
         console.error("Failed to fetch media data:", err);
       } finally {
-        setIsInitializing(false); // Safe to render iframe now
+        setIsInitializing(false);
       }
     };
     
@@ -48,9 +71,7 @@ const Videoplayer = ({ tmdbid, setid, selectedMedia, setactive }) => {
     window.scrollTo(0, 0);
   }, [tmdbid, selectedMedia, user]);
 
-  // 2. Silent Saver: Update Database when Season/Episode changes
   useEffect(() => {
-    // Only save if it's a TV show, user is logged in, and we've finished initializing
     if (selectedMedia === 'tv' && user && !isInitializing) {
         api.put('/progress', {
             mediaId: tmdbid,
@@ -82,9 +103,37 @@ const Videoplayer = ({ tmdbid, setid, selectedMedia, setactive }) => {
 
   const currentSeason = showData?.seasons?.find(s => s.season_number === seasonCount);
   const totalEpisodes = currentSeason?.episode_count || 0;
+  const currentProvider = VIDEO_SERVERS[activeServer];
+  const iframeSrc = selectedMedia === 'movie' 
+      ? currentProvider.getMovie(tmdbid) 
+      : currentProvider.getTv(tmdbid, seasonCount, episodeCount);
 
   return (
     <div style={{ background: '#050505', minHeight: '100vh', padding: '100px 5% 50px' }}>
+      
+      {/* VPN TOOLKIT MODAL */}
+      {showVpnToolkit && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
+          <div style={{ background: '#111', padding: '40px', borderRadius: '12px', maxWidth: '500px', border: '1px solid #333', textAlign: 'center', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
+            <h2 style={{ color: '#E50914', marginBottom: '20px', fontWeight: '800' }}>Network Block Detected</h2>
+            <p style={{ color: '#aaa', marginBottom: '30px', lineHeight: '1.6' }}>
+                Your Internet Service Provider is currently blocking our media servers. To bypass this restriction and watch instantly, please install a free browser VPN extension.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '30px' }}>
+                <a href="https://chrome.google.com/webstore/detail/setupvpn-lifetime-free-vp/oofgbpoabipfcfjapgneajmecaagcnwv" target="_blank" rel="noreferrer" style={{ background: '#222', color: '#fff', padding: '15px', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', border: '1px solid #444', transition: '0.2s' }}>
+                    Install SetupVPN (Chrome Extension)
+                </a>
+                <a href="https://1.1.1.1/" target="_blank" rel="noreferrer" style={{ background: '#222', color: '#fff', padding: '15px', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', border: '1px solid #444', transition: '0.2s' }}>
+                    Use Cloudflare 1.1.1.1 (System Wide)
+                </a>
+            </div>
+            <button onClick={() => setShowVpnToolkit(false)} style={{ background: '#E50914', color: '#fff', border: 'none', padding: '12px 30px', borderRadius: '50px', fontWeight: 'bold', cursor: 'pointer' }}>
+                Close Toolkit
+            </button>
+          </div>
+        </div>
+      )}
+
       {toast && (
         <div style={{ position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', background: '#46d369', color: 'black', padding: '10px 20px', borderRadius: '4px', fontWeight: 'bold', zIndex: 9999 }}>
           {toast}
@@ -100,15 +149,54 @@ const Videoplayer = ({ tmdbid, setid, selectedMedia, setactive }) => {
         </button>
       </div>
 
-      <div className="player-glow" style={{ borderRadius: '12px', overflow: 'hidden', marginBottom: '50px', boxShadow: '0 20px 40px rgba(0,0,0,0.6)' }}>
-        {/* Only render iframe after checking the database for progress */}
+      <div className="player-glow" style={{ borderRadius: '12px', overflow: 'hidden', marginBottom: '20px', boxShadow: '0 20px 40px rgba(0,0,0,0.6)' }}>
         {!isInitializing && (
             <iframe 
-            src={selectedMedia === 'movie' ? `https://vidking.net/embed/movie/${tmdbid}` : `https://vidking.net/embed/tv/${tmdbid}/${seasonCount}/${episodeCount}`}
-            style={{ width: '100%', aspectRatio: '21/9', border: 'none' }} 
-            allowFullScreen 
+              src={iframeSrc}
+              style={{ width: '100%', aspectRatio: '21/9', border: 'none' }} 
+              allowFullScreen 
             />
         )}
+      </div>
+
+      {/* THE CINEMATIC SERVER SWITCHER & VPN TRIGGER */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '50px', padding: '20px', background: 'rgba(25, 25, 25, 0.6)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+          <span style={{ color: '#888', fontSize: '13px', fontWeight: '700', letterSpacing: '1px', textTransform: 'uppercase' }}>
+            Video Source:
+          </span>
+          <div style={{ display: 'flex', gap: '10px', overflowX: 'auto' }}>
+            {VIDEO_SERVERS.map((server, index) => (
+              <button 
+                key={server.id}
+                onClick={() => setActiveServer(index)}
+                style={{
+                  background: activeServer === index ? '#E50914' : 'transparent',
+                  color: activeServer === index ? '#fff' : '#aaa',
+                  border: activeServer === index ? 'none' : '1px solid #444',
+                  padding: '8px 18px',
+                  borderRadius: '50px', 
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: activeServer === index ? '0 4px 15px rgba(229, 9, 20, 0.4)' : 'none',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {server.name}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        {/* VPN Trigger Link */}
+        <button 
+            onClick={() => setShowVpnToolkit(true)} 
+            style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#E50914', textDecoration: 'underline', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', padding: 0 }}
+        >
+            Servers still not loading? Click here to bypass ISP blocks.
+        </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: selectedMedia === 'tv' ? '1fr 350px' : '1fr', gap: '50px' }}>
