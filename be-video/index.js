@@ -107,29 +107,16 @@ app.post("/logout", (req, res) => {
     res.clearCookie("token");
     res.status(200).json({ message: "Logged out successfully" });
 });
-app.get("/landing",async (req,res)=>{
-    //using layered caching : in memory->redis server -> api call
-    const selectedMedia=req.query.selectedMedia
-    const currentTime=Date.now()
-    // const cached=await Check('landing')
-    // if(landing_store[0] && landing_store[0].time-currentTime<900000){
-    //     return res.json({
-    //         trending:landing_store[0].trending,
-    //         popular:landing_store[0].popular,
-    //         top_rated:landing_store[0].top_rated
-    //     })
-    // }
-
-    // if(cached!=null){
-    //     landing_store[0]={time:currentTime,...cached}
-    //     return res.send(cached)
-    // }
-    console.log("fetching from api")
-    const data=await getlanding(tmdbAgent)
-    // landing_store[0]={time:currentTime,...data}
-    // await Setex('landing',3600,data)
-    res.send(data);
-})
+app.get("/landing", async (req, res) => {
+    try {
+        console.log("Fetching from TMDB API...");
+        // Call it without the tmdbAgent
+        const data = await getlanding(); 
+        res.send(data);
+    } catch (err) {
+        res.status(500).json({ error: "Failed to fetch landing data" });
+    }
+});
 
 app.get("/search",async (req,res)=>{
     let search_query=req.query.search_query//check the search query , it should be present and a string , convert it into lowercase 

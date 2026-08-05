@@ -1,33 +1,45 @@
 import axios from "axios";
 
-async function getlanding(agent) { // Receive the agent here
-    console.log(process.env.TOKEN);
+async function getlanding() {
     const config = {
-        httpsAgent: agent, // Use the persistent agent
-        timeout: 10000,
-        headers: { Authorization: `Bearer ${process.env.TOKEN}` }
+        timeout: 5000,
+        headers: { 
+            Authorization: `Bearer ${process.env.TOKEN}`,
+            // These headers tell Cloudflare you are a normal browser, not a bot
+            'Accept-Encoding': 'gzip, deflate, br',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
     };
 
-    const [
-        trendingtvRes, topRatedtvRes, populartvRes,
-        trendingmovieRes, topRatedmovieRes, popularmovieRes
-    ] = await Promise.all([
-        axios.get(`https://api.themoviedb.org/3/trending/tv/day`, config),
-        axios.get(`https://api.themoviedb.org/3/tv/top_rated`, config),
-        axios.get(`https://api.themoviedb.org/3/tv/popular`, config),
-        axios.get(`https://api.themoviedb.org/3/trending/movie/day`, config),
-        axios.get(`https://api.themoviedb.org/3/movie/top_rated`, config),
-        axios.get(`https://api.themoviedb.org/3/movie/popular`, config),
-    ]);
+    try {
+        const [
+            trendingtvRes, 
+            topRatedtvRes, 
+            populartvRes,
+            trendingmovieRes, 
+            topRatedmovieRes, 
+            popularmovieRes
+        ] = await Promise.all([
+            axios.get(`https://api.themoviedb.org/3/trending/tv/day?language=en-US`, config),
+            axios.get(`https://api.themoviedb.org/3/tv/top_rated?language=en-US&page=1`, config),
+            axios.get(`https://api.themoviedb.org/3/tv/popular?language=en-US&page=1`, config),
+            axios.get(`https://api.themoviedb.org/3/trending/movie/day?language=en-US`, config),
+            axios.get(`https://api.themoviedb.org/3/movie/top_rated?language=en-US&page=1`, config),
+            axios.get(`https://api.themoviedb.org/3/movie/popular?language=en-US&page=1`, config),
+        ]);
 
-    return [
-        trendingtvRes.data.results, 
-        topRatedtvRes.data.results, 
-        populartvRes.data.results,
-        trendingmovieRes.data.results, 
-        topRatedmovieRes.data.results, 
-        popularmovieRes.data.results
-    ];
+        return {
+            trendingTv: trendingtvRes.data.results || [],
+            topRatedTv: topRatedtvRes.data.results || [],
+            popularTv: populartvRes.data.results || [],
+            trendingMovie: trendingmovieRes.data.results || [],
+            topRatedMovie: topRatedmovieRes.data.results || [],
+            popularMovie: popularmovieRes.data.results || []
+        };
+    } catch (error) {
+        console.error("TMDB Landing Fetch Error:", error.message);
+        throw error;
+    }
 }
 
 export default getlanding;
