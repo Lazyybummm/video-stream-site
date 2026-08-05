@@ -4,6 +4,7 @@ import api from '../api/axiosInstance';
 import '../index.css';
 import { AuthContext } from '../context/AuthContext';
 import HeroSlider from './HeroSlider';
+
 const Landing = ({ setactive, setid, selectedMedia, setSelectedMedia, setresults }) => {
   const { user } = useContext(AuthContext); 
   
@@ -17,10 +18,20 @@ const Landing = ({ setactive, setid, selectedMedia, setSelectedMedia, setresults
       try {
         const response = await api.get(`/landing`);
         const rawData = response.data;
+        
+        // Use the structured object keys from the updated backend
         if (selectedMedia === 'tv') {
-          setData({ trending: rawData[0] || [], topRated: rawData[1] || [], loading: false });
+          setData({ 
+            trending: rawData.trendingTv || [], 
+            topRated: rawData.topRatedTv || [], 
+            loading: false 
+          });
         } else {
-          setData({ trending: rawData[3] || [], topRated: rawData[4] || [], loading: false });
+          setData({ 
+            trending: rawData.trendingMovie || [], 
+            topRated: rawData.topRatedMovie || [], 
+            loading: false 
+          });
         }
       } catch (err) {
         console.error("Fetch error:", err);
