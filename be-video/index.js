@@ -17,7 +17,7 @@ app.use(cors({
     origin: ['http://localhost:5173',
         'https://omega-v4gh.vercel.app'
     ],
-    credentials: true,               // Explicitly allow cookies
+    credentials: true,               
 }));
 app.use(express.json());
 
